@@ -42,3 +42,15 @@ Domain_not_sp <- grep("NOT SPECIFIED",
                         ignore.case = T)
 strawb_CA <- strawb[strawb$Year == 2016&strawb$State =="CALIFORNIA",]
 
+##Q2
+CA_2016 <- strawb_organic[strawb_organic$Year == 2016 & strawb_organic$State == "CALIFORNIA",]
+sd <- as.numeric(CA_2016$` MEASURED IN $`[1])*as.numeric(CA_2016$`CV (%)`[1])/100
+as.numeric(CA_2016$` MEASURED IN $`[1])+1.96*sd
+as.numeric(CA_2016$` MEASURED IN $`[1])-1.96*sd
+
+##Q4
+length(unique(CA_chem$`Domain Category`))-4
+length(unique(strawb_non_organic$`Domain Category`))-4
+
+##5
+length(unique(CA_chem$`Domain Category`)) -  length(unique(FL_chem$`Domain Category`)) 
