@@ -152,22 +152,35 @@ ggplot(percent_posion_state1, aes(fill=type, y=log(value+1), x=State)) +
   scale_fill_discrete(labels = c("Poison Chemicals","Total Chemicals"))
 ```
 
-From this plot, The California high weight of poison chemicals than other State, the Oregon almost did not use poison chemicals From percent_posion_state table, over 20 percent chemicals using in CA is poison chemicals which is risky for human health. Meanwhile, I find the quantity of California strawberry is extremely higher than others States, so in next I would like find the proportion of strawberry quantity by State.
-## Strawberry Proportion by State
+From this plot, The California high weight of poison chemicals than other State, the Oregon almost did not use poison chemicals From percent_posion_state table, over 20 percent chemicals using in CA is poison chemicals which is risky for human health. Meanwhile, I find the quantity of California strawberry is extremely higher than others States, so in next I would like find the proportion of strawberry quantity by State. \## Strawberry Proportion by State
+
 ```{r}
-strawb4 %<>% pivot_wider(names_from = `units`, values_from = `Value`)
-CWT <- ifelse(strawb4$` MEASURED IN CWT`=="(D)",0,strawb4$` MEASURED IN CWT`)
+strawb5 <- strawb4 %>% pivot_wider(names_from = `units`, values_from = `Value`)
+CWT <- ifelse(strawb5$` MEASURED IN CWT`=="(D)",0,strawb5$` MEASURED IN CWT`)
 CWT_LB <- as.numeric(CWT)*100
-strawb4$` MEASURED IN LB`[1:54]<- CWT_LB
-LB_all <- ifelse(strawb4$` MEASURED IN LB`=="(D)"|strawb4$` MEASURED IN LB`=="(Z)"|
-         strawb4$` MEASURED IN LB`=="(NA)",0,strawb4$` MEASURED IN LB`)
-strawb4$` MEASURED IN LB` <- as.numeric(LB_all)
-strawb4 %>% group_by(State) %>% summarise(LB = sum(` MEASURED IN LB`, na.rm = TRUE))
-```
-```{r}
-total_state_LB <- strawb4 %>% group_by(State) %>% summarise(LB = sum(` MEASURED IN LB`, na.rm = TRUE))
-ggplot(total_state_LB, aes(x="", y=log(LB), fill=State)) +
-  geom_bar(stat="identity", width=1) +
-  coord_polar("y", start=0)
+strawb5$` MEASURED IN LB`[1:54]<- CWT_LB
+LB_all <- ifelse(strawb5$` MEASURED IN LB`=="(D)"|strawb5$` MEASURED IN LB`=="(Z)"|
+         strawb5$` MEASURED IN LB`=="(NA)",0,strawb5$` MEASURED IN LB`)
+strawb5$` MEASURED IN LB` <- as.numeric(LB_all)
+strawb5 %>% group_by(State) %>% summarise(LB = sum(` MEASURED IN LB`, na.rm = TRUE))
 ```
 
+```{r}
+total_state_LB <- strawb5 %>% group_by(State) %>% summarise(LB = sum(` MEASURED IN LB`, na.rm = TRUE))
+ggplot(total_state_LB, aes(x="", y=LB, fill=State)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0)+theme_void()+ggtitle("Total Strawberries Production in Pound by State")
+```
+
+This figure show the California produced a extraordinary quantity of strawberries compare to other states.
+
+```{r}
+ggplot(total_state_LB, aes(x="", y=log(LB), fill=State)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0)+theme_void()+ggtitle("Total Strawberries Production in Pound by State")
+```
+
+```{r}
+ggplot(total_state_LB, aes(x=State, y=log(LB))) + 
+  geom_bar(stat = "identity") + theme(legend.position="none")
+```
