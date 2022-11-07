@@ -40,9 +40,9 @@ Domain_organic1 <- grep("organic",
                        ignore.case = T)
 
 org_rows1 <- Domain_organic1
-strawb_organic <- strawb4 %>% slice(org_rows, preserve = FALSE)
+strawb_organic <- strawb4 %>% slice(org_rows1, preserve = FALSE)
 
-strawb_non_organic <- strawb4 %>% filter(!row_number() %in% org_rows)
+strawb_non_organic <- strawb4 %>% filter(!row_number() %in% org_rows1)
 ```
 
 ```{r}
