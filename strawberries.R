@@ -3,7 +3,7 @@ library(magrittr)
 library(readxl)
 strawb <- read_xlsx("strawberries-2022oct30-a.xlsx",col_names = TRUE)
 
-strawb_CA <- strawb[strawb$Year == 2016&strawb$State =="CALIFORNIA",]
+
 strawb2 <- strawb %>% separate(col=`Data Item`,
                                into = c("Strawberries", "items"),
                                sep = "-",
@@ -12,11 +12,11 @@ strawb2 <- strawb %>% separate(col=`Data Item`,
 strawb2 %<>% separate(col = `Strawberries`, into = c("Strawberries", "type", "type2"), 
                       sep = ",", fill = "right")
 
-
-
 strawb3 <- strawb2 %>% separate(col = `items`, into = c("sale type", "units"), 
                                 sep = ",", fill = "right")
+
 strawb4 <- strawb3 %>% select(-c(4, 8:13, 15, 17))
+
 Domain_organic1 <- grep("organic", 
                        strawb4$Domain, 
                        ignore.case = T)
@@ -40,5 +40,5 @@ length(unique(CA_chem$`Domain Category`)) -  length(unique(FL_chem$`Domain Categ
 Domain_not_sp <- grep("NOT SPECIFIED", 
                         FL_chem$`Domain Category`, 
                         ignore.case = T)
-
+strawb_CA <- strawb[strawb$Year == 2016&strawb$State =="CALIFORNIA",]
 

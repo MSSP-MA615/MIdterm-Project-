@@ -1,0 +1,173 @@
+---
+title: "strawberry"
+author: "Tao Guo"
+date: "2022-11-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(magrittr)
+library(readxl)
+library(ggplot2)
+```
+
+## Cleaning data
+
+Separate the column of Data Item
+
+```{r cars}
+strawb <- read_xlsx("strawberries-2022oct30-a.xlsx",col_names = TRUE)
+## separate the Data Item 
+strawb2 <- strawb %>% separate(col=`Data Item`,
+                               into = c("Strawberries", "items"),
+                               sep = "-",
+                               fill = "right")
+strawb2 %<>% separate(col = `Strawberries`, into = c("Strawberries", "type", "type2"), 
+                      sep = ",", fill = "right")
+strawb3 <- strawb2 %>% separate(col = `items`, into = c("sale type", "units"), 
+                                sep = ",", fill = "right")
+
+strawb4 <- strawb3 %>% select(-c(4, 8:13, 15, 17))
+```
+
+1.  Build organic and non organic tibble
+
+```{r}
+Domain_organic1 <- grep("organic", 
+                       strawb4$Domain, 
+                       ignore.case = T)
+
+org_rows1 <- Domain_organic1
+strawb_organic <- strawb4 %>% slice(org_rows, preserve = FALSE)
+
+strawb_non_organic <- strawb4 %>% filter(!row_number() %in% org_rows)
+```
+
+```{r}
+strawb_non_organic %<>% pivot_wider(names_from = `units`, values_from = `Value`)
+strawb_organic %<>% pivot_wider(names_from = `units`, values_from = `Value`)
+```
+
+2.  From non organic, separate the chemical tibble
+
+```{r}
+chem_rows <- grep("BEARING", 
+                       strawb_non_organic$type, 
+                       ignore.case = T)
+chem_rows_1 <- grep("chemical", 
+                  strawb_non_organic$Domain, 
+                  ignore.case = T)
+## chem_rows and chem_row_1 different rows
+## firstly I guess the fertilizer in have BEARING is type column, but It is not in Domain 
+chem_rows_f <- grep("FERTILIZER", strawb_non_organic$Domain)
+intersect(chem_rows_f, chem_rows)
+```
+
+```{r}
+strawb_chem <- strawb_non_organic %>% slice(chem_rows, preserve = FALSE)
+strawb_chem
+```
+
+## Poison chemical Carbendazim, Bifenthrin, methyl bromide, 1,3-dichloropropene, chloropicrin, Telone
+
+Searching the Poison chemical mentioned in reading
+
+```{r}
+#empty
+df_carbendazim <- grep("carbendazim", 
+                       strawb_chem$`Domain Category`, ignore.case = T)
+df_Bifenthrin <- grep("Bifenthrin", 
+                       strawb_chem$`Domain Category`, ignore.case = T)
+df_methyl_bromide <- grep("methyl bromide", 
+                      strawb_chem$`Domain Category`, ignore.case = T)
+#empty
+df_1_3_dichloropropene <- grep("1,3-dichloropropene", 
+                          strawb_chem$`Domain Category`, 
+                          ignore.case = T)
+df_chloropicrin <- grep("chloropicrin", 
+                               strawb_chem$`Domain Category`, ignore.case = T)
+## empty
+df_Telone <- grep("Telone", 
+                        strawb_chem$`Domain Category`, 
+                        ignore.case = T)
+```
+
+## Tibble for posion chemicals
+
+The carbendazim, 1_3\_dichloropropene, and Telone did not find in table
+
+```{r}
+Bifenthrin <- strawb_chem[df_Bifenthrin,]
+methyl_bromide <- strawb_chem[df_methyl_bromide,]
+dichloropropene <- strawb_chem[df_chloropicrin,]
+
+```
+
+## Total Posion chemicals by State
+
+```{r}
+Posion_chem <- strawb_chem[c(df_Bifenthrin,df_methyl_bromide,df_chloropicrin ),]
+
+
+```
+
+I replace (D) to zero
+
+```{r}
+LB <- ifelse(Posion_chem$` MEASURED IN LB`[1:16]=="(D)",0, Posion_chem$` MEASURED IN LB`[1:16])
+LB <- as.numeric(LB)
+Posion_chem$` MEASURED IN LB` <- LB
+Posion_chem %>% group_by(State) %>% summarise(LB_sum = sum(` MEASURED IN LB`))
+```
+
+### total chemical using by State
+
+```{r}
+LB_total <- ifelse(strawb_chem$` MEASURED IN LB`[1:728]=="(D)"|strawb_chem$` MEASURED IN LB`[1:728]=="(NA)"|strawb_chem$` MEASURED IN LB`[1:728]=="(Z)",0,strawb_chem$` MEASURED IN LB`[1:728])
+strawb_chem$` MEASURED IN LB` <- as.numeric(LB_total)
+strawb_chem%>% group_by(State) %>% summarise(LB_sum = sum(` MEASURED IN LB`))
+```
+
+## Percentage poison chemicals by State
+
+```{r}
+Posion_state <- Posion_chem %>% group_by(State) %>% summarise(LB_sum = sum(` MEASURED IN LB`))
+chem_state <- strawb_chem%>% group_by(State) %>% summarise(LB_sum = sum(` MEASURED IN LB`))
+
+Posion_state$Total_LB <- chem_state$LB_sum
+Posion_state %>% mutate(Percent_posion = LB_sum/Total_LB)
+percent_posion_state <- Posion_state %>% mutate(Percent_posion = LB_sum/Total_LB)
+```
+
+```{r}
+percent_posion_state1 <- percent_posion_state[-4] %>% pivot_longer(c(LB_sum,Total_LB), names_to = "type",values_to = "value")
+```
+
+```{r}
+ggplot(percent_posion_state1, aes(fill=type, y=log(value+1), x=State)) + 
+    geom_bar(position="dodge", stat="identity")+ylab("log scale of Measure in LB")+
+  ggtitle("Poison Chemicals and Total Chemicals by State")+
+  scale_fill_discrete(labels = c("Poison Chemicals","Total Chemicals"))
+```
+
+From this plot, The California high weight of poison chemicals than other State, the Oregon almost did not use poison chemicals From percent_posion_state table, over 20 percent chemicals using in CA is poison chemicals which is risky for human health. Meanwhile, I find the quantity of California strawberry is extremely higher than others States, so in next I would like find the proportion of strawberry quantity by State.
+## Strawberry Proportion by State
+```{r}
+strawb4 %<>% pivot_wider(names_from = `units`, values_from = `Value`)
+CWT <- ifelse(strawb4$` MEASURED IN CWT`=="(D)",0,strawb4$` MEASURED IN CWT`)
+CWT_LB <- as.numeric(CWT)*100
+strawb4$` MEASURED IN LB`[1:54]<- CWT_LB
+LB_all <- ifelse(strawb4$` MEASURED IN LB`=="(D)"|strawb4$` MEASURED IN LB`=="(Z)"|
+         strawb4$` MEASURED IN LB`=="(NA)",0,strawb4$` MEASURED IN LB`)
+strawb4$` MEASURED IN LB` <- as.numeric(LB_all)
+strawb4 %>% group_by(State) %>% summarise(LB = sum(` MEASURED IN LB`, na.rm = TRUE))
+```
+```{r}
+total_state_LB <- strawb4 %>% group_by(State) %>% summarise(LB = sum(` MEASURED IN LB`, na.rm = TRUE))
+ggplot(total_state_LB, aes(x="", y=log(LB), fill=State)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0)
+```
+
