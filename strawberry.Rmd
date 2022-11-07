@@ -163,6 +163,7 @@ LB_all <- ifelse(strawb5$` MEASURED IN LB`=="(D)"|strawb5$` MEASURED IN LB`=="(Z
          strawb5$` MEASURED IN LB`=="(NA)",0,strawb5$` MEASURED IN LB`)
 strawb5$` MEASURED IN LB` <- as.numeric(LB_all)
 strawb5 %>% group_by(State) %>% summarise(LB = sum(` MEASURED IN LB`, na.rm = TRUE))
+
 ```
 
 ```{r}
