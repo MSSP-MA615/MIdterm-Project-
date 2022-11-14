@@ -2,7 +2,9 @@
 title: "strawberry"
 author: "Tao Guo"
 date: "2022-11-06"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -17,7 +19,7 @@ library(ggplot2)
 
 Separate the column of Data Item
 
-```{r cars}
+```{r }
 strawb <- read_xlsx("strawberries-2022oct30-a.xlsx",col_names = TRUE)
 ## separate the Data Item 
 strawb2 <- strawb %>% separate(col=`Data Item`,
@@ -34,7 +36,7 @@ strawb4 <- strawb3 %>% select(-c(4, 8:13, 15, 17))
 
 1.  Build organic and non organic tibble
 
-```{r}
+```{r }
 Domain_organic1 <- grep("organic", 
                        strawb4$Domain, 
                        ignore.case = T)
@@ -52,7 +54,7 @@ strawb_organic %<>% pivot_wider(names_from = `units`, values_from = `Value`)
 
 2.  From non organic, separate the chemical tibble
 
-```{r}
+```{r echo = FALSE}
 chem_rows <- grep("BEARING", 
                        strawb_non_organic$type, 
                        ignore.case = T)
@@ -74,7 +76,7 @@ strawb_chem
 
 Searching the Poison chemical mentioned in reading
 
-```{r}
+```{r }
 #empty
 df_carbendazim <- grep("carbendazim", 
                        strawb_chem$`Domain Category`, ignore.case = T)
@@ -98,7 +100,7 @@ df_Telone <- grep("Telone",
 
 The carbendazim, 1_3\_dichloropropene, and Telone did not find in table
 
-```{r}
+```{r }
 Bifenthrin <- strawb_chem[df_Bifenthrin,]
 methyl_bromide <- strawb_chem[df_methyl_bromide,]
 dichloropropene <- strawb_chem[df_chloropicrin,]
@@ -107,15 +109,16 @@ dichloropropene <- strawb_chem[df_chloropicrin,]
 
 ## Total Posion chemicals by State
 
-```{r}
+```{r echo = FALSE}
+
 Posion_chem <- strawb_chem[c(df_Bifenthrin,df_methyl_bromide,df_chloropicrin ),]
 
 
 ```
 
-I replace (D) to zero
 
-```{r}
+
+```{r }
 LB <- ifelse(Posion_chem$` MEASURED IN LB`[1:16]=="(D)",0, Posion_chem$` MEASURED IN LB`[1:16])
 LB <- as.numeric(LB)
 Posion_chem$` MEASURED IN LB` <- LB
@@ -127,14 +130,21 @@ Posion_chem %>% group_by(State) %>% summarise(LB_sum = sum(` MEASURED IN LB`))
 ```{r}
 LB_total <- ifelse(strawb_chem$` MEASURED IN LB`[1:728]=="(D)"|strawb_chem$` MEASURED IN LB`[1:728]=="(NA)"|strawb_chem$` MEASURED IN LB`[1:728]=="(Z)",0,strawb_chem$` MEASURED IN LB`[1:728])
 strawb_chem$` MEASURED IN LB` <- as.numeric(LB_total)
-strawb_chem%>% group_by(State) %>% summarise(LB_sum = sum(` MEASURED IN LB`))
+strawb_chem%>% group_by(State) %>% summarise(LB_sum = sum(` MEASURED IN LB`))%>% kable(caption = "Total Posion Chemicals Using by State", digits = 3, format.args = list(big.mark = ",")) %>% kable_minimal(full_width = F)
 ```
 
 ## Percentage poison chemicals by State
 
 ```{r}
+total_rows <- grep("(TOTAL)", 
+strawb_chem$`Domain Category`, ignore.case = T)
+fertlizer_rows <- grep("FERTILIZER",strawb_chem$`Domain Category`, ignore.case = T)
+chem_total <- strawb_chem[c(total_rows,fertlizer_rows),]
+```
+
+```{r}
 Posion_state <- Posion_chem %>% group_by(State) %>% summarise(LB_sum = sum(` MEASURED IN LB`))
-chem_state <- strawb_chem%>% group_by(State) %>% summarise(LB_sum = sum(` MEASURED IN LB`))
+chem_state <- chem_total%>% group_by(State) %>% summarise(LB_sum = sum(` MEASURED IN LB`))
 
 Posion_state$Total_LB <- chem_state$LB_sum
 Posion_state %>% mutate(Percent_posion = LB_sum/Total_LB)
@@ -152,7 +162,16 @@ ggplot(percent_posion_state1, aes(fill=type, y=log(value+1), x=State)) +
   scale_fill_discrete(labels = c("Poison Chemicals","Total Chemicals"))
 ```
 
-From this plot, The California high weight of poison chemicals than other State, the Oregon almost did not use poison chemicals From percent_posion_state table, over 20 percent chemicals using in CA is poison chemicals which is risky for human health. Meanwhile, I find the quantity of California strawberry is extremely higher than others States, so in next I would like find the proportion of strawberry quantity by State. \## Strawberry Proportion by State
+From this plot, The California high weight of poison chemicals than other State, the Oregon almost did not use poison chemicals. Although the Florida use the poison chemicals, they only use about 0.45%. From percent_posion_state table, over 30 percent chemicals using in CA is poison chemicals which is risky for human health. 
+
+```{r}
+Posion_state_per_years <- Posion_chem %>% group_by(State,Year) %>% summarise(LB_sum = sum(` MEASURED IN LB`))
+Posion_state_per_years$`State per Year` <- paste(Posion_state_per_years$State, Posion_state_per_years$Year, sep = " ")
+
+ggplot(Posion_state_per_years, aes(x = `State per Year`, y = log(LB_sum)))+geom_bar(stat = "identity")+coord_flip()+ylab("log Pound of Each State Producation per year with Posion Chemicals ")
+```
+In this Plot, from 2016 to 2021, the poison chemicals application in California still maintain at very high levels. Compared to California, the poison chemicals application in Florida is much lower than California and in 2021 the Florida did not use posion chemicals at all. Meanwhile, I find the quantity of California strawberry is extremely higher than others States, based on two plots, so in next I would like find the proportion of strawberry quantity by State.
+## Strawberry Proportion by State
 
 ```{r}
 strawb5 <- strawb4 %>% pivot_wider(names_from = `units`, values_from = `Value`)
@@ -162,6 +181,14 @@ strawb5$` MEASURED IN LB`[1:54]<- CWT_LB
 LB_all <- ifelse(strawb5$` MEASURED IN LB`=="(D)"|strawb5$` MEASURED IN LB`=="(Z)"|
          strawb5$` MEASURED IN LB`=="(NA)",0,strawb5$` MEASURED IN LB`)
 strawb5$` MEASURED IN LB` <- as.numeric(LB_all)
+fresh_rows <-  grep("FRESH MARKET", strawb5$type2, ignore.case = T)
+procss_rows <-  grep("PROCESSING", strawb5$type2, ignore.case = T)
+strawb5 <- strawb5[-c(fresh_rows,procss_rows),]
+total_rows1 <- grep("(TOTAL)", 
+strawb5$`Domain Category`, ignore.case = T)
+fertlizer_rows <- grep("FERTILIZER",strawb5$`Domain Category`, ignore.case = T)
+organic_rows1 <- grep("ORGANIC",strawb5$type, ignore.case = T)
+strawb5 <- strawb5[c(total_rows1,fertlizer_rows,organic_rows1),]
 strawb5 %>% group_by(State) %>% summarise(LB = sum(` MEASURED IN LB`, na.rm = TRUE))
 
 ```
@@ -172,15 +199,15 @@ ggplot(total_state_LB, aes(x="", y=LB, fill=State)) +
   geom_bar(stat="identity", width=1, color="white") +
   coord_polar("y", start=0)+theme_void()+ggtitle("Total Strawberries Production in Pound by State")
 ```
-
-This figure show the California produced a extraordinary quantity of strawberries compare to other states.
-
+This Pi plot responds to my previous opinion, in this data sets, the California produce over 90% Strawberry. From my percentage poison chemicals by State, there are 
+20192300 LB strawberry may harm human health. Therefore, there are at least 6% strawberry produced in California, which are harmful. 
 ```{r}
 ggplot(total_state_LB, aes(x="", y=log(LB), fill=State)) +
   geom_bar(stat="identity", width=1, color="white") +
   coord_polar("y", start=0)+theme_void()+ggtitle("Total Strawberries Production in Pound by State")
 ```
-
+This last figure, I log the value of production of strawberry in order to find the 
+proportion of other State without California. This Pi chart show the Florida production is relatively higher than other states. Others production is closes with each others beside California. 
 ```{r}
 ggplot(total_state_LB, aes(x=State, y=log(LB))) + 
   geom_bar(stat = "identity") + theme(legend.position="none")
